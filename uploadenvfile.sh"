@@ -1,0 +1,5 @@
+#!/bin/sh
+for i in `ls -1 *.json`
+do
+echo "knife environment from file ${i}"
+done
