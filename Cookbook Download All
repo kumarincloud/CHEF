@@ -1,0 +1,22 @@
+#!/usr/bin/env ruby
+
+cookbook_list = `knife cookbook list -a`.split("\n")
+
+cookbook_list.each do |line|
+  line.strip!
+
+  line.match(/^([a-z0-9]+\-[a-z0-9-]+|\w+)\s+(\d\.\d\.\d|.+)$/)
+  name     = $1
+  versions = $2
+
+  versions_array = versions.split("  ")
+
+  versions_array.each do |version|
+    if File.directory?("cookbooks_archived/#{name}-#{version}")
+      puts "Skipping #{name}, version #{version}. Cookbook exists."
+    else
+      puts "Downloading #{name}, version #{version}"
+      `knife cookbook download #{name} #{version} -d cookbooks_archived`
+    end
+  end
+end
