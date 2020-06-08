@@ -1,0 +1,101 @@
+ref link
+https://dzone.com/articles/introduction-elasticsearch-0
+https://www.elastic.co/guide/en/elasticsearch/reference/6.1/modules-snapshots.html#_snapshot
+
+mkdir elasticsearch-backup
+sudo chown -R elasticsearch:elasticsearch /tmp/elasticsearch-backup
+
+Repository ADD
+sudo vim /etc/elasticsearch/elasticsearch.yml
+path.repo: ["/tmp/elasticsearch-backup"]
+sudo service elasticsearch restart
+curl -XGET localhost:9200/_cat/indices
+
+[root@staging-1 tmp]# curl -X PUT "localhost:9200/_snapshot/elasticsearch-backup?pretty" -H 'Content-Type: application/json' -d'{"type": "fs","settings": {"location":"/tmp/elasticsearch-backup"}}'
+{
+  "acknowledged" : true
+}
+----------------------------------------------------------------------------
+[root@staging-1 tmp]# curl -X GET "localhost:9200/_snapshot/_all?pretty"
+{
+  "elasticsearch-backup" : {
+    "type" : "fs",
+    "settings" : {
+      "location" : "/tmp/elasticsearch-backup"
+    }
+  }
+}
+------------------------------------------------------------------------------------
+[root@staging-1 tmp]# curl -s -XGET http://localhost:9200/_cluster/health?pretty
+
+----------------------------------------------------------------
+[root@staging-1 indices]# curl -XGET http://localhost:9200/_cat/indices?v
+health status index                pri rep docs.count docs.deleted store.size pri.store.size 
+green  open   20200806               250   1      1000         1537    378.7mb        166.3mb 
+
+---------------------------------------------------------------
+Now that we’ve registered a repository, we can now create our first snapshot
+curl -XPUT localhost:9200/_snapshot/elasticsearch-backup/snapshot_1
+creating a snapshot with the current day in the name, like snapshot-2020.06.08
+curl -X PUT "localhost:9200/_snapshot/elasticsearch-backup/%3Csnapshot-%7Bnow%2Fd%7D%3E?pretty"
+
+Verfify Backup
+curl -X POST "localhost:9200/_snapshot/elasticsearch-backup/_verify?pretty"
+
+Once a snapshot is created information about this snapshot can be obtained
+curl -X GET "localhost:9200/_snapshot/elasticsearch-backup/snapshot_1?pretty"
+
+Create
+[root@staging-1 tmp]# curl -XPUT http://localhost:9200/elasticsearch-backup/testbkp/1 -d '{"title":"Hello Test world"}'
+{"_index":"elasticsearch-backup","_type":"testbkp","_id":"1","_version":1,"created":true}[root@staging-1 tmp]#
+
+[root@staging-1 tmp]# curl -X GET "localhost:9200/_snapshot/elasticsearch-backup/snapshot_1?pretty"
+{
+  "snapshots" : [ {
+    "snapshot" : "snapshot_1",
+    "version_id" : 1070199,
+    "version" : "1.7.1",
+    "indices" : [ "206", "202_int", "201_int" ],
+    "state" : "SUCCESS",
+    "start_time" : "2020-06-08T02:51:00.417Z",
+    "start_time_in_millis" : 1591584660417,
+    "end_time" : "2020-06-08T02:53:33.827Z",
+    "end_time_in_millis" : 1591584813827,
+    "duration_in_millis" : 153410,
+    "failures" : [ ],
+    "shards" : {
+      "total" : 727,
+      "failed" : 0,
+      "successful" : 727
+    }
+  } ]
+}
+--------------------------------------------------------------------------------
+Snapshot Status
+curl -X GET "localhost:9200/_snapshot/_status?pretty"
+curl -X GET "localhost:9200/_snapshot/elasticsearch-backup/_status?pretty"
+curl -X GET "localhost:9200/_snapshot/elasticsearch-backup/snapshot_1/_status?pretty"
+Indices
+curl -X GET "localhost:9200/_cat/indices"
+---
+Delet 
+[root@staging-1 tmp]# curl -X DELETE "localhost:9200/_snapshot/elasticsearch-backup/snapshot_1?pretty"{ "acknowledged" : true}
+[root@staging-1 tmp]# curl -XDELETE 'http://localhost:9200/_snapshot/elasticsearch-backup/snapshot_1?pretty"' -d '{"indices": "elasticsearch-backup"}' {"acknowledged":true}
+
+[root@staging-1 elasticsearch-backup]# ll
+total 20
+-rw-r--r--  1 elasticsearch elasticsearch   28 Jun  7 22:53 index
+drwxr-xr-x 73 elasticsearch elasticsearch 4096 Jun  7 22:51 indices
+-rw-r--r--  1 elasticsearch elasticsearch 4469 Jun  7 22:51 metadata-snapshot_1
+-rw-r--r--  1 elasticsearch elasticsearch 1094 Jun  7 22:53 snapshot-snapshot_1
+[root@staging-1 elasticsearch-backup]# ls -1 | wc -l
+4
+You have new mail in /var/spool/mail/root
+[root@staging-1 elasticsearch-backup]# 
+
+[root@staging-1 tmp]# curl -XDELETE localhost:9200/elasticsearch-backup
+{"acknowledged":true}[root@staging-1 tmp]#
+Restore :
+curl -XPOST 'http://localhost:9200/_snapshot/elasticsearch-backup/snapshot_1/_restore' -d '{"indices": "elasticsearch-backup"}'
+-------------------------------
+Health chec = curl -s -XGET http://localhost:9200/_cluster/health?pretty
