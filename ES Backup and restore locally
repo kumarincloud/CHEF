@@ -140,10 +140,10 @@ Elasticsearch snapshot restore queries
         "type":"s3",
         "settings":
         {
-          "access_key":"AKIAIZDRHOOIOTCBANNA",
-          "secret_key":"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",
-          "endpoint":"s3.us-west-2.amazonaws.com",
-          "bucket": "blaws-billing",
+          "access_key":"",
+          "secret_key":"",
+          "endpoint":"",
+          "bucket": "",
           "base_path":"/primary_ES_Cluster_test",
           "region": "us-west-2",
           "chunk_size":"1g"
