@@ -99,3 +99,89 @@ Restore :
 curl -XPOST 'http://localhost:9200/_snapshot/elasticsearch-backup/snapshot_1/_restore' -d '{"indices": "elasticsearch-backup"}'
 -------------------------------
 Health chec = curl -s -XGET http://localhost:9200/_cluster/health?pretty
+----------------------------------------------------------------------------------------------------------------------------
+Elasticsearch snapshot restore queries
+1) Snapshot to s3 repository query
+
+    curl -s -XPUT 'localhost:9200/_snapshot/my_s3_repository/201711091724?wait_for_completion=true' -d '{"indices":"201711091724", "ignore_unavailable":"true", "include_global_state":"false"}'
+
+2) List all the snapshot from s3 repository
+
+    curl -s -XGET 'localhost:9200/_snapshot/my_s3_repository/_all?pretty'
+
+3) Delete the snapshot from s3 bucket query
+
+    curl -s -XDELETE 'localhost:9200/_snapshot/my_s3_repository/201711091724'
+
+4) Resote snapsht query to Elasticsearch
+
+    curl -s -XPOST 'localhost:9200/_snapshot/my_s3_repository/201711082054/_restore?wait_for_completion=true'
+
+5) Query to check the snapshot status
+
+    curl -XGET 'localhost:9200/_snapshot/my_s3_repository/_status?pretty'
+
+6) Query to check the bucket location and configuration
+
+    curl -s -XGET 'localhost:9200/_snapshot/my_s3_repository?pretty'
+
+7) Query to list the installed plugin in elasticsearch
+
+    curl  -XGET localhost:9200/_cat/plugins?v
+
+8) Query to restore the Elasticsearch index
+
+    curl -s -XPOST 'localhost:9200/_snapshot/my_s3_repository/$snapshot_name/_restore?wait_for_completion=true'
+
+9) Query to set the bucket location and configuaration (.s3cfg cnfig only should be configured)
+
+    curl -s -XPUT 'localhost:9200/_snapshot/my_s3_repository/?wait_for_completion=true' -d '
+    {
+        "type":"s3",
+        "settings":
+        {
+          "access_key":"AKIAIZDRHOOIOTCBANNA",
+          "secret_key":"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",
+          "endpoint":"s3.us-west-2.amazonaws.com",
+          "bucket": "blaws-billing",
+          "base_path":"/primary_ES_Cluster_test",
+          "region": "us-west-2",
+          "chunk_size":"1g"
+        },
+        "indices": "article_info",
+        "ignore_unavailable": "true",
+        "include_global_state": "false"
+    }'
+	
+10) Query to set local snapshot backup location
+	
+	curl -XPUT 'http://localhost:9200/_snapshot/my_backup' -H 'Content-Type: application/json' -d '{
+    "type": "fs",
+    "settings": {
+        "location": "/data/es.snapshots",
+        "compress": true
+    }
+}'
+
+
+11) To take snapshot for multiple indices
+
+	curl -XPUT 'localhost:9200/_snapshot/my_backup/backup_201907?pretty' -H 'Content-Type: application/json' -d' { "indices": "italy", "ignore_unavailable": "true", "include_global_state": false }'
+
+12)	snapshot multiple index restore
+
+	curl -XPOST 'localhost:9200/_snapshot/my_backup/snap_20190729/_restore?pretty' -H 'Content-Type: application/json' -d' { "indices": "italy", "ignore_unavailable": true, "include_global_state": true}'
+	
+13) snapshot status check
+
+	curl -XGET 'localhost:9200/_snapshot/my_backup/snap_20171207?pretty'
+
+	curl -XGET 'localhost:9200/_snapshot/my_backup/test_perculator?pretty'
+	
+14) Listing snapshot name only 
+	
+	curl -X GET "localhost:9200/_cat/snapshots/my_backup?v&s=id"
+
+
+	curl -XPOST 'localhost:9200/_snapshot/my_backup/snap_20190729/_restore?pretty' -H 'Content-Type: application/json' -d' {"ignore_unavailable": true, "include_global_state": true}'
+
